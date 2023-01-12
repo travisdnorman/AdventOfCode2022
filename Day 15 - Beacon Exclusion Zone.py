@@ -113,10 +113,8 @@ In the example above, the search space is smaller: instead, the x and y coordina
 
 Find the only possible position for the distress beacon. What is its tuning frequency?
 """
-import numpy as np
-
 y_of_interest = 10
-search_area_dim = 4000000
+search_area_dim = 4_000_000
 sensors = []
 beacons = []
 
@@ -176,74 +174,21 @@ with open("Day 15 - Input.txt", 'r') as f:
             result[x-min_x] = 'B'
 print('Num spaces beacon is not is: ' + str(result.count('#')))
 
-def in_search_area(x,y):
-    if x >= 0 and x <= search_area_dim and y >= 0 and y <= search_area_dim:
-        return True
-    else:
-        return False
-    
-def impacts_search_area(x,y,dist):
-    ret_val = False
-    if in_search_area(x,y):
-        return True
-    else:
-        if y >= 0 and y <= search_area_dim:
-            if x < 0 and (x+dist) >= 0:
-                ret_val = True
-            elif x > search_area_dim and (x-dist) <= search_area_dim:
-                ret_val = True
-        return ret_val
+def metro_distance(s,b): return abs(s[0]-b[0])+abs(s[1]-b[1])
     
 #part 2
+pos_coeffs = set()
+neg_coeffs = set()
 for s_x, s_y, b_dist in sensors:
-    print(s)
-    min_y = max(0, s_y-b_dist)
-    max_y = min(search_area_dim, s_y+b_dist)
-    if min_y <= search_area_dim and max_y >= 0:
-        min_i = min_y-s_y
-        max_i = max_y-s_y
-        for i in range(min_i,max_i):
-            temp_y = s_y + i
-            print(temp_y)
-            temp_dist = (b_dist-abs(i))
-            if impacts_search_area(s_x, temp_y, temp_dist):
-                temp_min_x = s_x-temp_dist
-                temp_max_x = s_x+temp_dist
-                min_x = max(0, temp_min_x)
-                max_x = min(search_area_dim,temp_max_x)
-                #print(temp_y,temp_min_x,min_x,temp_max_x,max_x)
-                search_area[temp_y] = search_area[temp_y][0:min_x] + ['#']*(max_x - min_x + 1) + search_area[temp_y][max_x+1:]
-    # print('looking up')      
-    # for i in range(1,b_dist+1):
-    #     #look at i rows up
-    #     temp_y = s_y - i
-    #     print(temp_y)
-    #     if impacts_search_area(s_x, temp_y, b_dist-i):
-    #         temp_min_x = s_x-(b_dist-i)
-    #         temp_max_x = s_x+(b_dist-i)
-    #         min_x = max(0, temp_min_x)
-    #         max_x = min(search_area_dim,temp_max_x)
-    #         #print(temp_y,temp_min_x,min_x,temp_max_x,max_x)
-    #         search_area[temp_y] = search_area[temp_y][0:min_x] + ['#']*(max_x - min_x + 1) + search_area[temp_y][max_x+1:]
-
-    s += 1
-
-print('Placing Sensors')    
-for s_x, s_y, b_dist in sensors:
-    print(s_x, s_y)
-    if in_search_area(s_x,s_y):
-        search_area[s_y][s_x] = 'S'
-
-print('Placing Beacons')        
-for b_x, b_y in beacons:
-    print(b_x,b_y)
-    if in_search_area(b_x,b_y):
-        search_area[b_y][b_x] = 'B'
-
-print('converting array')
-np_search_area = np.array(search_area, dtype='object')
-print('finding vacant spot')
-b = tuple(zip(*np.where(np_search_area == '.')))[0]
-
-b_fq = 4000000*b[1]+b[0]
-print('Distress Beacon Frequency = ', b_fq)
+    pos_coeffs.add(s_y-s_x+b_dist+1)
+    pos_coeffs.add(s_y-s_x-b_dist-1)
+    neg_coeffs.add(s_x+s_y+b_dist+1)
+    neg_coeffs.add(s_x+s_y-b_dist-1)
+    
+for a in pos_coeffs:
+    for b in neg_coeffs:
+        int_x = (b-a)//2 #x coord of intersection
+        int_y = (b+a)//2 #y coord of intersection
+        if 0<=int_x<=search_area_dim and 0<=int_y<=search_area_dim:
+            if all(metro_distance(s[:2], (int_x,int_y)) > s[2] for s in sensors):
+                print('Distress Beacon Tuning Frequency = ', (4_000_000*int_x+int_y))
